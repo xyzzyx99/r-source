@@ -89,7 +89,10 @@ jobs:
           $timeout = [TimeSpan]::FromMinutes(30)
       
           while ($true) {
+              Write-Host "Before"
               $p.Refresh()
+
+              Write-Host "After"
       
               if ($p.HasExited) {
                   Write-Host "p HasExited. Existing process..."
