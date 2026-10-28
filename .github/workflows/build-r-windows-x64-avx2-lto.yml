@@ -98,14 +98,19 @@ jobs:
                   Write-Host "p HasExited. Existing process..."
                   break
               }
+              Write-Host "After 1"
       
               $elapsed = (Get-Date) - $start
       
               if ($elapsed -gt $timeout) {
+                  Write-Host "After 2"
+
                   Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
                   throw "Rtools45 installation timed out after 30 minutes."
               }
-      
+
+              Write-Host "After 3"
+
               $count = (Get-ChildItem 'C:\rtools45' -File -Recurse `
                   -ErrorAction SilentlyContinue | Measure-Object).Count
       
@@ -113,9 +118,14 @@ jobs:
                   (Get-Date -Format 'HH:mm:ss'), $elapsed, $count)
       
               Start-Sleep -Seconds 10
+
+              Write-Host "After 4"
+
           }
-      
+
+          Write-Host "After 5"
           $p.WaitForExit()
+          Write-Host "After 6"
           $exitCode = $p.ExitCode
       
           Write-Host "Installer exit code: $exitCode"
