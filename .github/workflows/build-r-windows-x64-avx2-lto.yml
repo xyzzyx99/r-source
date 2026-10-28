@@ -60,10 +60,10 @@ jobs:
           
               if (Test-Path -LiteralPath $installDir) {
                   throw "Failed to remove $installDir"
-                    
+              }
           
               Write-Host "Directory removed successfully."
-                
+          }
           else {
               Write-Host "Directory does not exist. Clean installation."
           }
