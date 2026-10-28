@@ -142,20 +142,34 @@ jobs:
       - name: Update MSYS2 core packages
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
           $bash = 'C:\rtools45\usr\bin\bash.exe'
+          $pacman = 'C:\rtools45\usr\bin\pacman.exe'
+      
+          if (-not (Test-Path $pacman)) {
+              throw "pacman.exe is missing: $pacman"
+          }
       
           Write-Host "Updating MSYS2 core packages..."
-          & $bash --noprofile --norc -lc 'pacman -Syuu --noconfirm'
+          & $bash --noprofile --norc -c `
+              'export PATH=/usr/bin:/bin:$PATH; /usr/bin/pacman -Syuu --noconfirm'
       
-          Write-Host "First update stage finished."
+          Write-Host "Core update stage finished."
       
       - name: Complete MSYS2 update
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
           $bash = 'C:\rtools45\usr\bin\bash.exe'
+          $pacman = 'C:\rtools45\usr\bin\pacman.exe'
+      
+          if (-not (Test-Path $pacman)) {
+              throw "pacman.exe is missing after core update"
+          }
       
           Write-Host "Completing MSYS2 update..."
-          & $bash --noprofile --norc -lc 'pacman -Syuu --noconfirm'
+          & $bash --noprofile --norc -c `
+              'export PATH=/usr/bin:/bin:$PATH; /usr/bin/pacman -Syuu --noconfirm'
       
           if ($LASTEXITCODE -ne 0) {
               throw "MSYS2 update failed: $LASTEXITCODE"
