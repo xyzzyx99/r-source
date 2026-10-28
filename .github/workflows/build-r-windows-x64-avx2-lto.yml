@@ -31,18 +31,27 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $url = 'https://cran.r-project.org/bin/windows/Rtools/rtools45/files/rtools45-6768-6492.exe'
           $installer = Join-Path $env:RUNNER_TEMP 'rtools45.exe'
-          $log = Join-Path $env:RUNNER_TEMP 'rtools45-instal.log'
-
+          $log = Join-Path $env:RUNNER_TEMP 'rtools45-install.log'
+      
           Write-Host "Downloading Rtools45 from $url"
           & curl.exe --location --fail --show-error --progress-bar `
             --retry 4 --retry-all-errors --retry-delay 10 `
             --connect-timeout 30 --max-time 1800 `
             --output $installer $url
-          if ($LASTEXITCODE -ne 0) { throw "Rtools45 download failed (curl exit $LASTEXITCODE)" }
+      
+          if ($LASTEXITCODE -ne 0) {
+              throw "Rtools45 download failed (curl exit $LASTEXITCODE)"
+          }
+      
           $size = (Get-Item $installer).Length
           Write-Host ("Downloaded Rtools45: {0:N1} MiB" -f ($size / 1MB))
-          if ($size -lt 400MB) { throw 'Rtools45 download is unexpectedly small or incomplete' }
+      
+          if ($size -lt 400MB) {
+              throw 'Rtools45 download is unexpectedly small or incomplete'
+          }
+      
           Write-Host 'Installing Rtools45...'
+      
           $p = Start-Process -FilePath $installer `
               -ArgumentList @(
                   '/VERYSILENT',
@@ -52,36 +61,56 @@ jobs:
                   '/DIR=C:\rtools45',
                   "/LOG=$log"
               ) `
-             -RedirectStandardOutput "$env:RUNNER_TEMP\rtools-stdout.log" `
-             -RedirectStandardError "$env:RUNNER_TEMP\rtools-stderr.log" `
-             -WindowStyle Hidden `
-             -PassThru
-
+              -WindowStyle Hidden `
+              -PassThru
+      
           $null = $p.Handle
-
-          Write-Host "Rtools45 installer started. PID: $($p.Id)"
-          
-          while (-not $p.HasExited) {
+          Write-Host "Installer started. PID: $($p.Id)"
+      
+          $start = Get-Date
+          $timeout = [TimeSpan]::FromMinutes(30)
+      
+          while ($true) {
               $p.Refresh()
-          
-              if (Test-Path $log) {
-               	$count = (Get-ChildItem C:\rtools45 -File -Recurse -ErrorAction SilentlyContinue | Measure-Object).Count
-              	Write-Host "$(Get-Date -Format 'HH:mm:ss'): $count files"
-          
+      
+              if ($p.HasExited) {
+                  break
               }
-          
-              Write-Host "Installer running... $(Get-Date -Format 'HH:mm:ss')"
+      
+              $elapsed = (Get-Date) - $start
+      
+              if ($elapsed -gt $timeout) {
+                  Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+                  throw "Rtools45 installation timed out after 30 minutes."
+              }
+      
+              $count = (Get-ChildItem 'C:\rtools45' -File -Recurse `
+                  -ErrorAction SilentlyContinue | Measure-Object).Count
+      
+              Write-Host ("{0} | Elapsed: {1:mm\:ss} | Files: {2}" -f `
+                  (Get-Date -Format 'HH:mm:ss'), $elapsed, $count)
+      
               Start-Sleep -Seconds 10
-          
           }
-
+      
           $p.WaitForExit()
           $exitCode = $p.ExitCode
-          #Write-Host "Installer exit code: $exitCode"
-
-#          if ($p.ExitCode -ne 0) { throw "Rtools45 installer exited with $($p.ExitCode)" }
-          if ($exitCode -ne 0) { throw "Rtools45 installer exited with $exitCode" }
-          if (-not (Test-Path 'C:\rtools45\usr\bin\bash.exe')) { throw 'Rtools45 MSYS2 bash was not installed' }
+      
+          Write-Host "Installer exit code: $exitCode"
+      
+          if ($null -eq $exitCode -or $exitCode -ne 0) {
+              if (Test-Path $log) {
+                  Write-Host 'Last 80 installer log lines:'
+                  Get-Content $log -Tail 80
+              }
+              throw "Rtools45 installation failed. Exit code: $exitCode"
+          }
+      
+          if (-not (Test-Path 'C:\rtools45\usr\bin\bash.exe')) {
+              throw 'Rtools45 MSYS2 bash was not installed'
+          }
+      
+          Write-Host 'Rtools45 installation completed successfully.'
 
       - name: Install MSYS build utilities
         shell: C:\rtools45\usr\bin\bash.exe --noprofile --norc -eo pipefail {0}
