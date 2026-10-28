@@ -118,9 +118,15 @@ jobs:
 
               }
 
-              $count = (Get-ChildItem 'C:\rtools45' -File -Recurse `
-                  -ErrorAction SilentlyContinue | Measure-Object).Count
-               Write-Host "After 4"
+              $count = 0
+
+              if (Test-Path -LiteralPath $installDir -PathType Container) {
+                 $count = (Get-ChildItem -LiteralPath $installDir `
+                    -File -Recurse -ErrorAction SilentlyContinue |
+                    Measure-Object).Count
+              }
+              
+              Write-Host "After 4"
      
               Write-Host ("{0} | Elapsed: {1:mm\:ss} | Files: {2}" -f `
                   (Get-Date -Format 'HH:mm:ss'), $elapsed, $count)
