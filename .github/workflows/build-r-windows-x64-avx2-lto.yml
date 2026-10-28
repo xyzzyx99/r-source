@@ -139,6 +139,24 @@ jobs:
           Write-Host 'Rtools45 installation completed successfully.'
 
 
+      - name: Refresh MSYS2 signing keys
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $bash = 'C:\rtools45\usr\bin\bash.exe'
+      
+          Write-Host "Initializing and refreshing MSYS2 keyring..."
+      
+          & $bash --noprofile --norc -c `
+            'export PATH=/usr/bin:/bin:$PATH; pacman-key --init && pacman-key --populate msys2 && pacman-key --refresh-keys'
+      
+          if ($LASTEXITCODE -ne 0) {
+              throw "MSYS2 keyring refresh failed: $LASTEXITCODE"
+          }
+      
+          Write-Host "MSYS2 keyring refreshed."
+
+
       - name: Update MSYS2 core packages
         shell: pwsh
         run: |
