@@ -110,6 +110,13 @@ jobs:
               }
 
               Write-Host "After 3"
+              if (Test-Path -LiteralPath $installDir) {
+                 Write-Host "$installDir exsts"
+
+              } else {
+                 Write-Host "$installDir does not exst"
+
+              }
 
               $count = (Get-ChildItem 'C:\rtools45' -File -Recurse `
                   -ErrorAction SilentlyContinue | Measure-Object).Count
