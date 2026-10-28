@@ -113,13 +113,15 @@ jobs:
 
               $count = (Get-ChildItem 'C:\rtools45' -File -Recurse `
                   -ErrorAction SilentlyContinue | Measure-Object).Count
-      
+               Write-Host "After 4"
+     
               Write-Host ("{0} | Elapsed: {1:mm\:ss} | Files: {2}" -f `
                   (Get-Date -Format 'HH:mm:ss'), $elapsed, $count)
+              Write-Host "After 5"
       
               Start-Sleep -Seconds 10
 
-              Write-Host "After 4"
+              Write-Host "After 6"
 
           }
 
