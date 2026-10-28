@@ -29,11 +29,18 @@ jobs:
       - name: Download and install Rtools45
         run: |
           $ErrorActionPreference = 'Stop'
-          $base = 'https://cran.r-project.org/bin/windows/Rtools/rtools45/files/'
-          $index = (Invoke-WebRequest -Uri $base -UseBasicParsing).Content
-          $name = [regex]::Match($index, 'rtools45-\d+-\d+\.exe').Value
-          if (-not $name) { throw 'Cannot find Rtools45 Windows x64 installer' }
-          Invoke-WebRequest -Uri ($base + $name) -OutFile "$env:RUNNER_TEMP\rtools45.exe"
+          $url = 'https://cran.r-project.org/bin/windows/Rtools/rtools45/files/rtools45-6768-6492.exe'
+          $installer = Join-Path $env:RUNNER_TEMP 'rtools45.exe'
+          Write-Host "Downloading Rtools45 from $url"
+          & curl.exe --location --fail --show-error --progress-bar `
+            --retry 4 --retry-all-errors --retry-delay 10 `
+            --connect-timeout 30 --max-time 1800 `
+            --output $installer $url
+          if ($LASTEXITCODE -ne 0) { throw "Rtools45 download failed (curl exit $LASTEXITCODE)" }
+          $size = (Get-Item $installer).Length
+          Write-Host ("Downloaded Rtools45: {0:N1} MiB" -f ($size / 1MB))
+          if ($size -lt 400MB) { throw 'Rtools45 download is unexpectedly small or incomplete' }
+          Write-Host 'Installing Rtools45...'
           $p = Start-Process -FilePath "$env:RUNNER_TEMP\rtools45.exe" -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/SP-','/DIR=C:\rtools45' -Wait -PassThru
           if ($p.ExitCode -ne 0) { throw "Rtools45 installer exited with $($p.ExitCode)" }
           if (-not (Test-Path 'C:\rtools45\usr\bin\bash.exe')) { throw 'Rtools45 MSYS2 bash was not installed' }
