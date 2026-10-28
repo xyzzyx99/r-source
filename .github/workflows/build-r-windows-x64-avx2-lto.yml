@@ -92,6 +92,7 @@ jobs:
               $p.Refresh()
       
               if ($p.HasExited) {
+                  Write-Host "p HasExited. Existing process..."
                   break
               }
       
