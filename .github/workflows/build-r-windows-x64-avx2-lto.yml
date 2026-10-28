@@ -140,6 +140,7 @@ jobs:
 
 
       - name: Refresh MSYS2 signing keys
+	    if: false
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -155,6 +156,25 @@ jobs:
           }
       
           Write-Host "MSYS2 keyring refreshed."
+
+
+
+      - name: Initialize MSYS2 signing keys
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $bash = 'C:\rtools45\usr\bin\bash.exe'
+  
+          Write-Host "Initializing MSYS2 keyring..."
+  
+          & $bash --noprofile --norc -c `
+            'export PATH=/usr/bin:/bin:$PATH; pacman-key --init && pacman-key --populate msys2'
+  
+          if ($LASTEXITCODE -ne 0) {
+              throw "MSYS2 keyring initialization failed: $LASTEXITCODE"
+          }
+  
+          Write-Host "MSYS2 keyring initialized."
 
 
       - name: Update MSYS2 core packages
