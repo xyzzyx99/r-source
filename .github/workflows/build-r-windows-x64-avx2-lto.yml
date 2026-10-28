@@ -259,6 +259,20 @@ jobs:
           cd "$(cygpath -u "$GITHUB_WORKSPACE")/r-source/src/gnuwin32"
           make check
 
+
+      - name: Upload R test diagnostics
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: R-Test-Diagnostics
+          path: |
+            r-source/tests/**/*.Rout.fail
+            r-source/tests/**/*.Rout
+            r-source/tests/**/*.log
+          if-no-files-found: warn
+          retention-days: 14
+
+
       - name: Upload compiled R (build tree, not installer)
         if: ${{ success() }}
         uses: actions/upload-artifact@v4
