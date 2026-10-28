@@ -49,6 +49,24 @@ jobs:
           if ($size -lt 400MB) {
               throw 'Rtools45 download is unexpectedly small or incomplete'
           }
+
+          $installDir = 'C:\rtools45'
+          
+          if (Test-Path -LiteralPath $installDir) {
+              Write-Host "Removing existing Rtools45 directory..."
+          
+              Remove-Item -LiteralPath $installDir `
+                  -Recurse -Force -ErrorAction Stop
+          
+              if (Test-Path -LiteralPath $installDir) {
+                  throw "Failed to remove $installDir"
+                    
+          
+              Write-Host "Directory removed successfully."
+                
+          else {
+              Write-Host "Directory does not exist. Clean installation."
+          }
       
           Write-Host 'Installing Rtools45...'
       
