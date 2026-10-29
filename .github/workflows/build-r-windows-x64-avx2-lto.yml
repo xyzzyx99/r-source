@@ -269,6 +269,23 @@ jobs:
           cd "$(cygpath -u "$GITHUB_WORKSPACE")/r-source"
           ./bin/R --vanilla -q -e 'print(R.version.string); stopifnot(sum(1:10) == 55)'
 
+
+      - name: Test R approximate string matching
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $rterm = Join-Path $env:GITHUB_WORKSPACE 'r-source\bin\x64\Rterm.exe'
+  
+          & $rterm --vanilla --slave -e 'print(agrep("lasy", "1 lazy 2"))'
+          $code = $LASTEXITCODE
+  
+          Write-Host "agrep exit code: $code"
+  
+          if ($code -ne 0) {
+              throw "R agrep test failed with exit code $code"
+          }
+
+
       - name: Run base tests
         if: ${{ inputs.run_checks }}
         shell: C:\rtools45\usr\bin\bash.exe --noprofile --norc -eo pipefail {0}
