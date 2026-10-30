@@ -246,14 +246,25 @@ jobs:
         run: |
           cd "$(cygpath -u "$GITHUB_WORKSPACE")/r-source/src/gnuwin32"
           cat > MkRules.local <<'EOF'
-          #EOPTS = -O2 -mavx2 -mfma -mstackrealign
-          EOPTS = -O3 -mfma -mstackrealign
-          #LTO = -flto
-          LTO =
+          EOPTS = -O2 -mavx2 -mfma -mstackrealign
+          #EOPTS = -O3 -mfma -mstackrealign
+          LTO = -flto
+          #LTO =
           LTO_OPT = -flto
           #LTO_OPT =
           EOF
           cat MkRules.local
+
+
+      - name: Disable optimization for agrep
+        shell: C:\rtools45\usr\bin\bash.exe --noprofile --norc -eo pipefail {0}
+        run: |
+          cd "$(cygpath -u "$GITHUB_WORKSPACE")/r-source/src/main"
+
+          sed -i '/^agrep-CPPFLAGS =/a agrep-CFLAGS = -O0 -fno-lto -fno-tree-vectorize' Makefile.win
+
+          grep '^agrep-.*FLAGS' Makefile.win
+
 
       - name: Compile R and recommended packages
         shell: C:\rtools45\usr\bin\bash.exe --noprofile --norc -eo pipefail {0}
