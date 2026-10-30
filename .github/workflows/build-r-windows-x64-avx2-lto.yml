@@ -261,9 +261,18 @@ jobs:
         run: |
           cd "$(cygpath -u "$GITHUB_WORKSPACE")/r-source/src/main"
 
+          echo "Existing agrep build settings:"
+          grep -n 'agrep' Makefile.win
+
           sed -i '/^agrep-CPPFLAGS =/a agrep-CFLAGS = -O0 -fno-lto -fno-tree-vectorize' Makefile.win
 
-          grep '^agrep-.*FLAGS' Makefile.win
+          if ! grep -q '^agrep-CFLAGS = -O0 -fno-lto -fno-tree-vectorize$' Makefile.win; then
+              echo "ERROR: agrep optimization override was not inserted."
+              exit 1
+          fi
+
+          echo "Configured agrep build flags:"
+          grep -n '^agrep-.*FLAGS' Makefile.win
 
 
       - name: Compile R and recommended packages
