@@ -248,8 +248,8 @@ jobs:
           cat > MkRules.local <<'EOF'
           #EOPTS = -O2 -mavx2 -mfma -mstackrealign
           EOPTS = -O3 -mfma -mstackrealign
-          LTO = -flto
-          #LTO =
+          #LTO = -flto
+          LTO =
           LTO_OPT = -flto
           #LTO_OPT =
           EOF
