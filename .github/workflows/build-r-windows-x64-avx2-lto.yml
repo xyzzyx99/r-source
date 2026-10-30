@@ -316,7 +316,100 @@ jobs:
           retention-days: 14
 
 
-      - name: Upload compiled R (build tree, not installer)
+      - name: Install Windows installer and documentation prerequisites
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          # The official R Windows distribution build needs Inno Setup and MiKTeX.
+          choco install innosetup --yes --no-progress
+          if ($LASTEXITCODE -ne 0) { throw "Inno Setup installation failed: $LASTEXITCODE" }
+          choco install miktex --yes --no-progress
+          if ($LASTEXITCODE -ne 0) { throw "MiKTeX installation failed: $LASTEXITCODE" }
+
+          $innoDirs = @(
+              'C:\Program Files (x86)\Inno Setup 6',
+              'C:\Program Files\Inno Setup 6'
+          )
+          $inno = $innoDirs | Where-Object { Test-Path (Join-Path $_ 'ISCC.exe') } | Select-Object -First 1
+          if (-not $inno) { throw 'Inno Setup 6 ISCC.exe not found after installation' }
+
+          $miktexBins = @(
+              'C:\Program Files\MiKTeX\miktex\bin\x64',
+              'C:\Program Files (x86)\MiKTeX\miktex\bin\x64'
+          )
+          $miktex = $miktexBins | Where-Object { Test-Path (Join-Path $_ 'pdflatex.exe') } | Select-Object -First 1
+          if (-not $miktex) {
+              $pdflatex = Get-Command pdflatex.exe -ErrorAction SilentlyContinue
+              if ($pdflatex) { $miktex = Split-Path $pdflatex.Source -Parent }
+          }
+          if (-not $miktex) { throw 'MiKTeX pdflatex.exe not found after installation' }
+
+          "INNO_DIR=$inno" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          "MIKTEX_BIN=$miktex" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          Write-Host "Inno Setup: $inno"
+          Write-Host "MiKTeX: $miktex"
+
+      - name: Build complete R Windows installer
+        shell: C:\rtools45\usr\bin\bash.exe --noprofile --norc -eo pipefail {0}
+        run: |
+          export PATH=/x86_64-w64-mingw32.static.posix/bin:/usr/bin:/bin:$PATH
+          export TAR=/usr/bin/tar
+          export TAR_OPTIONS=--force-local
+          export MIKTEX_AUTOINSTALL=1
+
+          # GNU make's ISDIR variable uses forward slashes.
+          isdir="$(cygpath -m "$INNO_DIR")"
+          miktexdir="$(cygpath -u "$MIKTEX_BIN")"
+          export PATH="$miktexdir:$PATH"
+
+          cd "$(cygpath -u "$GITHUB_WORKSPACE")/r-source/src/gnuwin32"
+          printf '\nISDIR = %s\n' "$isdir" >> MkRules.local
+          echo "Inno Setup configured at: $isdir"
+          command -v pdflatex
+          command -v make
+
+          # Required for documentation; install after finishing the MSYS2 core update.
+          pacman -S --noconfirm --needed texinfo texinfo-tex
+          make distribution
+
+          shopt -s nullglob
+          installers=(installer/R-*-win.exe installer/R-*.exe)
+          if (( ${#installers[@]} == 0 )); then
+              echo 'ERROR: make distribution did not produce an R Windows installer'
+              find installer -maxdepth 2 -type f -name '*.exe' -print
+              exit 1
+          fi
+          workspace="$(cygpath -u "$GITHUB_WORKSPACE")"
+          mkdir -p "$workspace/r-installer"
+          cp -v "${installers[0]}" "$workspace/r-installer/R-Windows-x64-AVX2-LTO-installer.exe"
+          ls -lh "$workspace/r-installer/"
+
+      - name: Upload R Windows x64 installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: R-Windows-x64-AVX2-LTO-Installer
+          path: r-installer/R-Windows-x64-AVX2-LTO-installer.exe
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Verify R installation directories
+        shell: pwsh
+        run: |
+          $root = Join-Path $env:GITHUB_WORKSPACE 'r-source'
+  
+          foreach ($dir in @('bin', 'etc', 'library', 'modules', 'share', 'doc', 'Tcl', 'include')) {
+              $path = Join-Path $root $dir
+  
+              if (Test-Path $path) {
+                  Write-Host "$dir : EXISTS"
+              } else {
+                  Write-Warning "$dir : MISSING"
+              }
+          }
+
+
+      - name: Upload compiled R
         if: ${{ success() }}
         uses: actions/upload-artifact@v4
         with:
@@ -328,6 +421,8 @@ jobs:
             r-source/modules/
             r-source/share/
             r-source/doc/
+            r-source/Tcl/
+            r-source/include/
             r-source/src/gnuwin32/MkRules.local
           if-no-files-found: error
           retention-days: 14
