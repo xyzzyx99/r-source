@@ -140,7 +140,7 @@ jobs:
 
 
       - name: Refresh MSYS2 signing keys
-        if: false
+        #if: false
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -160,7 +160,7 @@ jobs:
 
 
       - name: Initialize MSYS2 signing keys
-        if: false
+        #if: false
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
