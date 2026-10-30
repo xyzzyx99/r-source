@@ -247,7 +247,7 @@ jobs:
           cd "$(cygpath -u "$GITHUB_WORKSPACE")/r-source/src/gnuwin32"
           cat > MkRules.local <<'EOF'
           #EOPTS = -O2 -mavx2 -mfma -mstackrealign
-          EOPTS = -O2 -mavx2  
+          EOPTS = -mavx  
           #LTO = -flto
           LTO =
           #LTO_OPT = -flto
