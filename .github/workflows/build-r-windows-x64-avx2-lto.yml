@@ -140,27 +140,40 @@ jobs:
 
 
       - name: Refresh MSYS2 signing keys
-        if: false
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $bash = 'C:\rtools45\usr\bin\bash.exe'
-      
-          Write-Host "Initializing and refreshing MSYS2 keyring..."
-      
-          & $bash --noprofile --norc -c `
-            'export PATH=/usr/bin:/bin:$PATH; pacman-key --init && pacman-key --populate msys2 && pacman-key --refresh-keys'
-      
-          if ($LASTEXITCODE -ne 0) {
-              throw "MSYS2 keyring refresh failed: $LASTEXITCODE"
-          }
-      
-          Write-Host "MSYS2 keyring refreshed."
+          $maxAttempts = 3
+          $success = $false
 
+          for ($i = 1; $i -le $maxAttempts; $i++) {
+              Write-Host "MSYS2 key refresh attempt $i of $maxAttempts"
+
+              & $bash --noprofile --norc -c `
+                'export PATH=/usr/bin:/bin:$PATH; pacman-key --init && pacman-key --populate msys2 && pacman-key --refresh-keys'
+
+              $code = $LASTEXITCODE
+              if ($code -eq 0) {
+                  Write-Host 'MSYS2 key refresh succeeded.'
+                  $success = $true
+                  break
+              }
+
+              Write-Warning "Key refresh failed with exit code $code"
+              if ($i -lt $maxAttempts) {
+                  Write-Host 'Retrying in 15 seconds...'
+                  Start-Sleep -Seconds 15
+              }
+          }
+
+          if (-not $success) {
+              throw "MSYS2 key refresh failed after $maxAttempts attempts."
+          }
 
 
       - name: Initialize MSYS2 signing keys
-        #if: false
+        if: false
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
